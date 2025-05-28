@@ -1,6 +1,5 @@
 import validator from "validator";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import sendMail from "../lib/sendMail.js";
 import {
   generateAccessToken,
@@ -308,88 +307,6 @@ export const resendOtp = async (req, res) => {
     console.error("Error Resending OTP:", error);
     return res.status(500).json(
       responseFormat({
-        message: "Internal server error",
-        status: 500,
-      })
-    );
-  }
-};
-
-export const getUser = async (req, res) => {
-  try {
-    // Extract the access token from cookies
-    const refreshToken = req.cookies?.refreshToken;
-
-    // Check if the token exists
-    if (!refreshToken) {
-      return res.status(401).json(
-        responseFormat({
-          data: null,
-          message: "Refresh token is missing",
-          status: 401,
-        })
-      );
-    }
-
-    // Verify and decode the token
-    const decryptedRefreshToken = jwt.verify(
-      refreshToken,
-      process.env.JWT_SECRET_REFRESH
-    );
-
-    // Extract the user's email from the decoded token
-    const { email } = decryptedRefreshToken;
-
-    if (!email) {
-      return res.status(400).json(
-        responseFormat({
-          data: null,
-          message: "Invalid token: email not found",
-          status: 400,
-        })
-      );
-    }
-
-    // Fetch the user by email from the database
-    const user = await User.findOne({ email });
-
-    // If the user is not found
-    if (!user) {
-      return res.status(404).json(
-        responseFormat({
-          data: null,
-          message: "User not found",
-          status: 404,
-        })
-      );
-    }
-
-    // If the user is found, return the user data
-    return res.status(200).json(
-      responseFormat({
-        data: user,
-        message: "User found",
-        status: 200,
-      })
-    );
-  } catch (error) {
-    console.error("Error fetching user:", error);
-
-    // Handle different error cases
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json(
-        responseFormat({
-          data: null,
-          message: "Invalid access token",
-          status: 401,
-        })
-      );
-    }
-
-    // Internal server error
-    return res.status(500).json(
-      responseFormat({
-        data: null,
         message: "Internal server error",
         status: 500,
       })

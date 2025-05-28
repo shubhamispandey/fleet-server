@@ -4,9 +4,10 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
 import http from "http";
-import connectDatabase from "./lib/connectDB.js";
-import authRoutes from "./routes/authRoutes.js";
-import meetRoutes from "./routes/meetRoutes.js";
+import connectDatabase from "./src/lib/connectDB.js";
+import authRoutes from "./src/routes/authRoutes.js";
+import meetRoutes from "./src/routes/meetRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
 
 // ENVIRONMENT VARIABLES
 dotenv.config();
@@ -37,6 +38,7 @@ app.use(cookieParser());
 // ROUTES
 app.use("/api/auth", authRoutes);
 app.use("/api/meet", meetRoutes);
+app.use("/api/users", userRoutes);
 
 // SOCKET.IO HANDLING
 io.on("connection", (socket) => {
