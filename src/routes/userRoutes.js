@@ -13,8 +13,8 @@ router.use(authMiddleware);
 
 router.get("/", getAllUsers);
 router.get("/me", getCurrentUser);
+router.get("/search", searchUsers);
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);
-router.get("/search", searchUsers);
 
 export default router;

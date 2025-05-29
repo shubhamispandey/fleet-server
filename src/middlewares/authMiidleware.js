@@ -8,7 +8,6 @@ import User from "../models/User.js";
 
 const authMiddleware = (req, res, next) => {
   const { accessToken, refreshToken } = req.cookies;
-  const decoded = jwt.decode(accessToken, process.env.JWT_SECRET);
 
   if (!accessToken) {
     return res

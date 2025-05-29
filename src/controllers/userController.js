@@ -64,9 +64,9 @@ export const updateUser = async (req, res) => {
 
 export const searchUsers = async (req, res) => {
   try {
-    const query = req.query.q; // Extract the search query from the request query parameters
+    const query = req.query.q;
     const result = await userService.searchUsers(query);
-    return res.status(result.status).json(responseFormat(result));
+    return res.status(result.status).json(result);
   } catch (error) {
     console.error("Search Users error:", error);
     return res

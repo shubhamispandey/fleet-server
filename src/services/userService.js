@@ -35,22 +35,42 @@ const userService = {
     try {
       const user = await User.findById(userId).select("-password");
       if (!user) {
-        return { status: 404, message: "User not found" };
+        return responseFormat({
+          data: null,
+          status: 404,
+          message: "User not found",
+        });
       }
-      return { status: 200, data: user };
+      return responseFormat({
+        data: user,
+        status: 200,
+        message: "User fetched successfully",
+      });
     } catch (error) {
       console.error("Error fetching user by ID:", error);
-      return { status: 500, message: "Could not fetch user" };
+      return responseFormat({
+        data: null,
+        status: 500,
+        message: "Could not fetch user",
+      });
     }
   },
 
   async getAllUsers() {
     try {
       const users = await User.find().select("-password");
-      return { status: 200, data: users };
+      return responseFormat({
+        data: users,
+        status: 200,
+        message: "Users fetched successfully",
+      });
     } catch (error) {
       console.error("Error fetching all users:", error);
-      return { status: 500, message: "Could not fetch users" };
+      return responseFormat({
+        data: null,
+        status: 500,
+        message: "Could not fetch users",
+      });
     }
   },
 
@@ -60,16 +80,24 @@ const userService = {
         new: true,
       }).select("-password");
       if (!updatedUser) {
-        return { status: 404, message: "User not found" };
+        return responseFormat({
+          data: null,
+          status: 404,
+          message: "User not found",
+        });
       }
-      return {
+      return responseFormat({
+        data: updatedUser,
         status: 200,
         message: "User updated successfully",
-        data: updatedUser,
-      };
+      });
     } catch (error) {
       console.error("Error updating user:", error);
-      return { status: 500, message: "Could not update user" };
+      return responseFormat({
+        data: null,
+        status: 500,
+        message: "Could not update user",
+      });
     }
   },
 
@@ -81,10 +109,18 @@ const userService = {
           { email: { $regex: query, $options: "i" } },
         ],
       }).select("-password");
-      return { status: 200, data: users };
+      return responseFormat({
+        data: users,
+        status: 200,
+        message: "Users fetched successfully",
+      });
     } catch (error) {
       console.error("Error searching users:", error);
-      return { status: 500, message: "Could not search users" };
+      return responseFormat({
+        data: null,
+        status: 500,
+        message: "Could not search users",
+      });
     }
   },
 };
