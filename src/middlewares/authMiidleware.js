@@ -1,9 +1,5 @@
 import jwt from "jsonwebtoken";
-import {
-  formattedDate,
-  generateAccessToken,
-  responseFormat,
-} from "../lib/helperFunctions.js";
+import { generateAccessToken, responseFormat } from "../lib/helperFunctions.js";
 import User from "../models/User.js";
 
 const authMiddleware = (req, res, next) => {
@@ -39,6 +35,9 @@ const authMiddleware = (req, res, next) => {
             const newAccessToken = generateAccessToken(user);
 
             res.cookie("accessToken", newAccessToken, { httpOnly: true });
+            req.cookies.accessToken = newAccessToken;
+            req.cookies.refreshToken = refreshToken;
+
             req.user = decodedRefreshToken;
             next();
           }

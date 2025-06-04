@@ -12,7 +12,8 @@ const OtpSchema = mongoose.Schema({
   },
   expiresAt: {
     type: Date,
-    default: Date.now() + 10 * 60 * 1000,
+    default: Date.now() + 10 * 60 * 1000, // 10 minutes from now
+    expires: "10m", // Automatically delete after 10 minutes
   },
 });
 

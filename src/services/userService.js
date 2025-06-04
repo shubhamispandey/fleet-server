@@ -15,7 +15,6 @@ const userService = {
           message: "User not found",
         });
       }
-      console.log("Current user fetched successfully:", user);
       return responseFormat({
         data: user,
         status: 200,

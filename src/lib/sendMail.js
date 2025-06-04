@@ -18,10 +18,6 @@ const generateOTP = (n = 6) =>
   Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join("");
 
 const sendMail = async (user) => {
-  console.log({
-    user: process.env.USEREMAIL,
-    pass: process.env.USEREMAILPASSWORD,
-  });
   try {
     if (!process.env.USEREMAIL || !process.env.USEREMAILPASSWORD)
       throw new Error("Email credentials are not set in Environment variables");
@@ -61,7 +57,6 @@ const sendMail = async (user) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.response);
     return {
       message: "Email sent successfully",
       info,
