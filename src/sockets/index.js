@@ -2,7 +2,7 @@
 
 import socketAuthMiddleware from "../middlewares/socketAuthMiddleware.js";
 import presenceHandler from "./handlers/presenceHandler.js";
-import chatHandler from "./handlers/chatHandler.js";
+import conversationHandler from "./handlers/conversationHandler.js";
 import SOCKET_EVENTS from "../utils/socketEvents.js";
 
 // This function will be called from your main server file (index.js)
@@ -18,7 +18,7 @@ const initializeSocketIO = (io) => {
 
     // Register all event handlers for this socket
     presenceHandler(io, socket);
-    chatHandler(io, socket);
+    conversationHandler(io, socket);
 
     // You can add more handlers here for other features (e.g., meetingHandler)
     // For example:

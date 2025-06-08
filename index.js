@@ -9,6 +9,7 @@ import { Server } from "socket.io";
 import connectDatabase from "./src/lib/connectDB.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
+import conversationRoutes from "./src/routes/conversationRoutes.js";
 import rateLimiter from "./src/middlewares/rateLimiter.js";
 import initializeSocketIO from "./src/sockets/index.js";
 import startServer from "./src/lib/server.js";
@@ -31,7 +32,8 @@ const server = http.createServer(app);
 // Create the Socket.IO server
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.FRONTEND_HOST,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   },
   transports: ["websocket", "polling"],
@@ -40,12 +42,13 @@ const io = new Server(server, {
 // MIDDLEWARES
 app.use(cors(corsOption));
 app.use(express.json());
-app.use(cookieParser()); // Make sure cookieParser is used before routes if you rely on cookies for auth
+app.use(cookieParser());
 
 // ROUTES
 app.use("/api/auth", authRoutes);
 // app.use("/api/meet", meetRoutes); // Temporarily commented out as per your request scope
 app.use("/api/users", userRoutes);
+app.use("/api/conversations", conversationRoutes);
 
 // Start the server
 startServer(server, async () => {

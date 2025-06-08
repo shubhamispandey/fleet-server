@@ -1,5 +1,3 @@
-// backend/models/Message.js
-
 import mongoose from "mongoose";
 
 const MessageSchema = new mongoose.Schema(
@@ -8,7 +6,7 @@ const MessageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "Conversation",
-      index: true, // For efficient querying of messages within a conversation
+      index: true, // Index for faster lookups
     },
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -19,11 +17,11 @@ const MessageSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    timestamp: {
-      type: Date,
-      default: Date.now,
+    type: {
+      type: String,
+      enum: ["text", "image", "file", "video", "audio"],
+      default: "text",
     },
-    // Optional: Add read status for messages
     readBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
