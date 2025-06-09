@@ -1,5 +1,6 @@
 // backend/services/chatService.js
 
+import { buildConversationSearchPipeline } from "../filters/conversations.js";
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js"; // Needed for participant checks
@@ -11,25 +12,50 @@ const chatService = {
    * @param {string} userId - The ID of the user.
    * @param {number} [page=1] - The page number.
    * @param {number} [limit=20] - The number of conversations per page. Use -1 for all.
+   * @param {string} search - The Search Filter
    * @returns {Promise<object>} - { status, message, data: conversations }
    */
-  async getUserConversations(userId, page = 1, limit = 20) {
+  // ...existing code...
+  async getUserConversations(userId, page = 1, limit = 20, search = "") {
     try {
       const skip = limit === -1 ? 0 : (page - 1) * limit;
-      const findQuery = { participants: userId };
+      let findQuery = { participants: userId };
+
+      if (search && search.trim() !== "") {
+        // 1. Find users matching the search string
+        const matchedUsers = await User.find(
+          { name: { $regex: search, $options: "i" } },
+          { _id: 1 }
+        );
+
+        const matchedUserIds = matchedUsers
+          .filter((u) => u._id.toString() && userId !== u._id.toString())
+          .map((u) => u._id.toString());
+
+        // 2. Always require userId, and if there are matches, require at least one matched user
+        if (matchedUserIds.length > 0) {
+          findQuery = {
+            participants: { $all: [userId], $in: matchedUserIds },
+          };
+        } else {
+          // If no users matched, return empty result
+          return {
+            status: 200,
+            data: { conversations: [], totalCount: 0, page, limit },
+            message: "Conversations fetched successfully",
+          };
+        }
+      }
 
       const conversations = await Conversation.find(findQuery)
-        .populate("participants", "name avatar email status") // Populate user details
+        .populate("participants", "name avatar email status")
         .populate({
           path: "lastMessage",
-          populate: { path: "senderId", select: "name avatar" }, // Populate sender in lastMessage
+          populate: { path: "senderId", select: "name avatar" },
         })
-        .sort({ lastActivityAt: -1 }) // Sort by most recent activity
+        .sort({ lastActivityAt: -1 })
         .skip(skip)
-        .limit(limit === -1 ? 0 : limit); // Use 0 limit for no limit if -1
-      console.log(
-        `Found ${conversations.length} conversations for user ${userId}`
-      );
+        .limit(limit === -1 ? 0 : limit);
 
       const totalCount = await Conversation.countDocuments(findQuery);
 
@@ -43,14 +69,16 @@ const chatService = {
       return { status: 500, message: "Could not fetch conversations" };
     }
   },
+  // ...existing code...
 
   /**
    * Finds or creates a private conversation between two users.
    * @param {string} user1Id - ID of the first user.
    * @param {string} user2Id - ID of the second user.
+   * @param {string} name
    * @returns {Promise<object>} - { status, message, data: conversation, created: boolean }
    */
-  async getOrCreatePrivateConversation(user1Id, user2Id) {
+  async getOrCreatePrivateConversation(user1Id, user2Id, name) {
     try {
       if (user1Id === user2Id) {
         return {
@@ -72,7 +100,8 @@ const chatService = {
         conversation = await Conversation.create({
           type: "private",
           participants: participants,
-          lastActivityAt: new Date(), // Set initial activity time
+          lastActivityAt: new Date(),
+          name: name || `${participants[0]} & ${participants[1]}`,
         });
         created = true;
         // Populate participants after creation for the response

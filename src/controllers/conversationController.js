@@ -7,6 +7,7 @@ import {
   DEFAULT_CONVERSATION_LIMIT,
   DEFAULT_MESSAGE_LIMIT,
   DEFAULT_SEARCH_LIMIT,
+  DEFAULT_SEARCH,
 } from "../utils/config.js";
 
 // API CALL
@@ -15,7 +16,13 @@ export const getConversations = async (req, res) => {
     const userId = req.user.userId; // From authMiddleware
     const page = parseInt(req.query.page) || DEFAULT_PAGE;
     const limit = parseInt(req.query.limit) || DEFAULT_CONVERSATION_LIMIT;
-    const result = await chatService.getUserConversations(userId, page, limit);
+    const search = req.query.search || DEFAULT_SEARCH;
+    const result = await chatService.getUserConversations(
+      userId,
+      page,
+      limit,
+      search
+    );
     return res.status(result.status).json(responseFormat(result));
   } catch (error) {
     console.error("Error in getConversations:", error);
@@ -116,8 +123,7 @@ export const postMessage = async (req, res) => {
 export const createConversation = async (req, res) => {
   try {
     const { type, participantId, participantIds, name } = req.body;
-    const currentUserId = req.userId; // From authMiddleware
-
+    const currentUserId = req.user.userId; // From authMiddleware
     let result;
     if (type === "private") {
       if (!participantId) {
@@ -130,7 +136,8 @@ export const createConversation = async (req, res) => {
       }
       result = await chatService.getOrCreatePrivateConversation(
         currentUserId,
-        participantId
+        participantId,
+        name
       );
     } else if (type === "group") {
       if (
