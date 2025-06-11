@@ -130,12 +130,7 @@ const authService = {
       });
     }
 
-    console.log("user==>", user);
-
     const otpInDb = await Otp.findOne({ userId: user._id });
-    const allOtp = await Otp.find();
-    console.log("otpInDb==>", otpInDb);
-    console.log("allOtp==>", allOtp);
     if (!otpInDb) {
       const mailRes = await sendMail(user);
       return mailRes.status === 200
@@ -145,8 +140,6 @@ const authService = {
             status: 500,
           });
     }
-    console.log("1.otpInDb.otp==>", otpInDb.otp);
-    console.log("2.otp==>", otp);
     if (otp === otpInDb.otp) {
       const expiresAt = new Date(otpInDb.expiresAt).getTime();
       const currentTime = Date.now();
