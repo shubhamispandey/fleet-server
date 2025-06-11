@@ -37,8 +37,16 @@ const authService = {
 
     await Token.create({ userId: user._id, refreshToken });
 
-    res.cookie("accessToken", accessToken, { httpOnly: true });
-    res.cookie("refreshToken", refreshToken, { httpOnly: true });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+    });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+    });
 
     return responseFormat({
       message: "Login successful",

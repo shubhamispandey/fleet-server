@@ -34,7 +34,11 @@ const authMiddleware = (req, res, next) => {
             });
             const newAccessToken = generateAccessToken(user);
 
-            res.cookie("accessToken", newAccessToken, { httpOnly: true });
+            res.cookie("accessToken", newAccessToken, {
+              httpOnly: true,
+              sameSite: "none",
+              secure: true,
+            });
             req.cookies.accessToken = newAccessToken;
             req.cookies.refreshToken = refreshToken;
 
