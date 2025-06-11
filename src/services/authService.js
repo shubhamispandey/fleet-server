@@ -131,6 +131,7 @@ const authService = {
     }
 
     const otpInDb = await Otp.findOne({ userId: user._id });
+    console.log("otpInDb==>", otpInDb);
     if (!otpInDb) {
       const mailRes = await sendMail(user);
       return mailRes.status === 200
