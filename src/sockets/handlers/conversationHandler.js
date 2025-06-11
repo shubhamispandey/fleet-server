@@ -34,6 +34,7 @@ const conversationHandler = (io, socket) => {
     type = "text",
   }) => {
     try {
+      console.log("===>>", receiverId, content, type);
       const conversationResult =
         await chatService.getOrCreatePrivateConversation(userId, receiverId);
       if (conversationResult.status >= 400) {
@@ -57,11 +58,11 @@ const conversationHandler = (io, socket) => {
         return;
       }
       const newMessage = saveMessageResult.data; // This message is populated with senderId
-
+      console.log(newMessage);
       // Broadcast to all participants of this private conversation
       emitToUsers(
         conversation.participants.map((p) => p._id.toString()),
-        SOCKET_EVENTS.NEW_MESSAGE_RECEIVED,
+        SOCKET_EVENTS.RECEIVE_MESSAGE,
         { conversationId: conversation._id, message: newMessage }
       );
 

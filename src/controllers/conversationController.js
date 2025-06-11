@@ -36,7 +36,7 @@ export const getConversations = async (req, res) => {
 export const getConversationMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const userId = req.userId; // From authMiddleware
+    const userId = req.user.userId; // From authMiddleware
     const page = parseInt(req.query.page) || DEFAULT_PAGE;
     const limit = parseInt(req.query.limit) || DEFAULT_MESSAGE_LIMIT;
     const result = await chatService.getMessages(

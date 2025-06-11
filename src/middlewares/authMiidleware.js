@@ -33,7 +33,6 @@ const authMiddleware = (req, res, next) => {
               email: decodedRefreshToken?.email,
             });
             const newAccessToken = generateAccessToken(user);
-            console.log(user);
 
             res.cookie("accessToken", newAccessToken, { httpOnly: true });
             req.cookies.accessToken = newAccessToken;

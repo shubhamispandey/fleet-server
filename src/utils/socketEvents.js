@@ -3,7 +3,7 @@
 
 const SOCKET_EVENTS = {
   // --- Core Connection & Disconnection ---
-  CONNECT: "connect",
+  CONNECTION: "connection",
   DISCONNECT: "disconnect",
 
   // --- User Presence ---
@@ -13,7 +13,7 @@ const SOCKET_EVENTS = {
   // --- Chat Messaging ---
   SEND_PRIVATE_MESSAGE: "send-private-message", // Client sends a private message
   SEND_GROUP_MESSAGE: "send-group-message", // Client sends a message to a group
-  NEW_MESSAGE_RECEIVED: "new-message-received", // Server broadcasts a new message to relevant clients
+  RECEIVE_MESSAGE: "receive-message", // Server broadcasts a new message to relevant clients
   TYPING_INDICATOR: "typing-indicator", // Client/Server broadcasts typing status
   CHAT_ERROR: "chat-error", // Server sends an error related to chat operations
 

@@ -242,7 +242,11 @@ const chatService = {
 
       const totalCount = await Message.countDocuments(findQuery);
 
-      return { status: 200, data: { messages, totalCount, page, limit } };
+      return {
+        status: 200,
+        data: { messages, totalCount, page, limit },
+        message: "Messages fetched successfully!",
+      };
     } catch (error) {
       console.error("Error fetching messages:", error);
       return { status: 500, message: "Could not fetch messages" };
