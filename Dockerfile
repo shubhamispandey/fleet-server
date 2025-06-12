@@ -1,15 +1,23 @@
-FROM node:20
+# Use Node.js base image
+FROM node:18
 
+# Set working directory
 WORKDIR /app
 
+# Copy package files and install dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install
 
+COPY .env ./
+
+# Copy the rest of the code
 COPY . .
 
+# Load environment variables if needed
 ENV NODE_ENV=production
-ENV PORT=8002
 
+# Expose port (adjust if your app uses a different one)
 EXPOSE 8002
 
-CMD ["npm", "start"]
+# Start the app
+CMD ["node", "index.js"]
