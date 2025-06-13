@@ -50,6 +50,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/conversations", conversationRoutes);
 
+app.get("/", (req,res) => {
+  res.send("Backend Loaded");
+});
+
 // Start the server
 startServer(server, async () => {
   await connectDatabase(DATABASE_URL);
