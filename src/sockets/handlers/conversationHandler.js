@@ -3,6 +3,7 @@
 import chatService from "../../services/chatService.js";
 import socketUserMap from "../../utils/socketUserMap.js";
 import SOCKET_EVENTS from "../../utils/socketEvents.js";
+import { responseFormat } from "../../lib/helperFunctions.js";
 
 const conversationHandler = (io, socket) => {
   const userId = socket.userId; // Authenticated user ID from socketAuthMiddleware
@@ -34,7 +35,6 @@ const conversationHandler = (io, socket) => {
     type = "text",
   }) => {
     try {
-      console.log("===>>", receiverId, content, type);
       const conversationResult =
         await chatService.getOrCreatePrivateConversation(userId, receiverId);
       if (conversationResult.status >= 400) {
@@ -196,6 +196,84 @@ const conversationHandler = (io, socket) => {
     }
   };
 
+  const handleCreateConversation = async ({
+    type,
+    participantId,
+    participantIds,
+    name,
+  }) => {
+    try {
+      const currentUserId = socket.userId;
+      let result;
+      if (type === "private") {
+        if (!participantId) {
+          socket.emit(
+            SOCKET_EVENTS.CHAT_ERROR,
+            responseFormat({
+              message: "No User Selected  for a Conversation",
+              status: 400,
+            })
+          );
+        }
+
+        result = await chatService.getOrCreatePrivateConversation(
+          currentUserId,
+          participantId,
+          name
+        );
+      } else if (type === "group") {
+        if (
+          !participantIds ||
+          !Array.isArray(participantIds) ||
+          participantIds.length < 1 ||
+          !name
+        ) {
+          socket.emit(
+            SOCKET_EVENTS.CHAT_ERROR,
+            responseFormat({
+              message:
+                "participantIds (array) and name are required for group chat",
+              status: 400,
+            })
+          );
+        }
+        result = await chatService.createGroupConversation(
+          participantIds,
+          name,
+          currentUserId
+        );
+      } else {
+        return res.status(400).json(
+          responseFormat({
+            message: 'Invalid conversation type. Must be "private" or "group"',
+            status: 400,
+          })
+        );
+      }
+
+      if (result && result.data) {
+        emitToUsers(
+          result.data.participants.map((p) => p._id.toString()),
+          SOCKET_EVENTS.RECEIVE_CONVERSATION,
+          responseFormat({
+            message: "Conversation Created",
+            status: 200,
+            data: result.data,
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error in createConversation:", error);
+      socket.emit(
+        SOCKET_EVENTS.CHAT_ERROR,
+        responseFormat({
+          message: "Failed to create conversation.",
+          status: 500,
+        })
+      );
+    }
+  };
+
   /**
    * Handles typing indicator.
    * Broadcasts TYPING_INDICATOR to other participants in the conversation.
@@ -335,6 +413,7 @@ const conversationHandler = (io, socket) => {
   // Register all Socket.IO event listeners for conversations and messages
   socket.on(SOCKET_EVENTS.SEND_PRIVATE_MESSAGE, handleSendPrivateMessage);
   socket.on(SOCKET_EVENTS.SEND_GROUP_MESSAGE, handleSendGroupMessage);
+  socket.on(SOCKET_EVENTS.CREATE_CONVERSATION, handleCreateConversation);
   socket.on(SOCKET_EVENTS.GET_CHAT_HISTORY, handleGetChatHistory);
   socket.on(SOCKET_EVENTS.GET_USER_CONVERSATIONS, handleGetUserConversations);
   socket.on(SOCKET_EVENTS.TYPING_INDICATOR, handleTypingIndicator);

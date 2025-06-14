@@ -95,6 +95,7 @@ const chatService = {
       }).populate("participants", "name avatar email status");
 
       let created = false;
+
       if (!conversation) {
         conversation = await Conversation.create({
           type: "private",

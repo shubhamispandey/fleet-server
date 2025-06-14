@@ -6,7 +6,6 @@ import {
   getConversationMessages,
   searchConversationMessages,
   postMessage,
-  createConversation,
   markConversationAsRead,
   deleteMessage,
   updateMessage,
@@ -20,7 +19,6 @@ router.use(authMiddleware);
 
 // Conversations
 router.get("/", getConversations); // GET /api/conversations (Fetch all conversations for the user)
-router.post("/", createConversation); // POST /api/conversations (Create a new private or group conversation)
 
 // Messages within a specific conversation
 router.get("/:conversationId/messages", getConversationMessages); // GET /api/conversations/{conversationId}/messages

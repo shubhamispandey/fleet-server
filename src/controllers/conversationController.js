@@ -119,64 +119,6 @@ export const postMessage = async (req, res) => {
   }
 };
 
-// API CALL
-export const createConversation = async (req, res) => {
-  try {
-    const { type, participantId, participantIds, name } = req.body;
-    const currentUserId = req.user.userId; // From authMiddleware
-    let result;
-    if (type === "private") {
-      if (!participantId) {
-        return res.status(400).json(
-          responseFormat({
-            message: "participantId is required for private chat",
-            status: 400,
-          })
-        );
-      }
-      result = await chatService.getOrCreatePrivateConversation(
-        currentUserId,
-        participantId,
-        name
-      );
-    } else if (type === "group") {
-      if (
-        !participantIds ||
-        !Array.isArray(participantIds) ||
-        participantIds.length < 1 ||
-        !name
-      ) {
-        return res.status(400).json(
-          responseFormat({
-            message:
-              "participantIds (array) and name are required for group chat",
-            status: 400,
-          })
-        );
-      }
-      result = await chatService.createGroupConversation(
-        participantIds,
-        name,
-        currentUserId
-      );
-    } else {
-      return res.status(400).json(
-        responseFormat({
-          message: 'Invalid conversation type. Must be "private" or "group"',
-          status: 400,
-        })
-      );
-    }
-
-    return res.status(result.status).json(responseFormat(result));
-  } catch (error) {
-    console.error("Error in createConversation:", error);
-    return res
-      .status(500)
-      .json(responseFormat({ message: "Internal server error", status: 500 }));
-  }
-};
-
 // SOCKET CALL
 export const markConversationAsRead = async (req, res) => {
   try {
