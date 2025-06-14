@@ -50,7 +50,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/conversations", conversationRoutes);
 
-app.get("/", (req,res) => {
+app.get("/", (req, res) => {
   res.send("Backend Loaded");
 });
 

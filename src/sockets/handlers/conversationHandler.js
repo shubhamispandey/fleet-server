@@ -3,10 +3,20 @@
 import chatService from "../../services/chatService.js";
 import socketUserMap from "../../utils/socketUserMap.js";
 import SOCKET_EVENTS from "../../utils/socketEvents.js";
+import Conversation from "../../models/Conversation.js";
 import { responseFormat } from "../../lib/helperFunctions.js";
 
 const conversationHandler = (io, socket) => {
   const userId = socket.userId; // Authenticated user ID from socketAuthMiddleware
+
+  // Helper: Map participants to string IDs
+  const getParticipantIds = (participants) =>
+    participants.map((p) => (p._id ? p._id.toString() : p.toString()));
+
+  // Helper: Emit error in a consistent format
+  const emitError = (message, status = 400) => {
+    socket.emit(SOCKET_EVENTS.CHAT_ERROR, responseFormat({ message, status }));
+  };
 
   /**
    * Helper to emit a message to all active sockets of specified users.
@@ -16,8 +26,9 @@ const conversationHandler = (io, socket) => {
    */
   const emitToUsers = (recipientUserIds, eventName, payload) => {
     recipientUserIds.forEach((recipientUserId) => {
-      const recipientSockets =
-        socketUserMap.getSocketsByUserId(recipientUserId);
+      const recipientSockets = socketUserMap.getSocketsByUserId(
+        recipientUserId
+      );
       recipientSockets.forEach((sId) => {
         io.to(sId).emit(eventName, payload);
       });
@@ -35,12 +46,12 @@ const conversationHandler = (io, socket) => {
     type = "text",
   }) => {
     try {
-      const conversationResult =
-        await chatService.getOrCreatePrivateConversation(userId, receiverId);
+      const conversationResult = await chatService.getOrCreatePrivateConversation(
+        userId,
+        receiverId
+      );
       if (conversationResult.status >= 400) {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-          message: conversationResult.message,
-        });
+        emitError(conversationResult.message, conversationResult.status);
         return;
       }
       const conversation = conversationResult.data;
@@ -52,16 +63,14 @@ const conversationHandler = (io, socket) => {
         type
       );
       if (saveMessageResult.status >= 400) {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-          message: saveMessageResult.message,
-        });
+        emitError(saveMessageResult.message, saveMessageResult.status);
         return;
       }
       const newMessage = saveMessageResult.data; // This message is populated with senderId
       console.log(newMessage);
       // Broadcast to all participants of this private conversation
       emitToUsers(
-        conversation.participants.map((p) => p._id.toString()),
+        getParticipantIds(conversation.participants),
         SOCKET_EVENTS.RECEIVE_MESSAGE,
         { conversationId: conversation._id, message: newMessage }
       );
@@ -69,7 +78,7 @@ const conversationHandler = (io, socket) => {
       // If a new conversation was created, notify both users
       if (conversationResult.created) {
         emitToUsers(
-          conversation.participants.map((p) => p._id.toString()),
+          getParticipantIds(conversation.participants),
           SOCKET_EVENTS.NEW_CONVERSATION_RECEIVED,
           {
             conversationId: conversation._id,
@@ -79,9 +88,7 @@ const conversationHandler = (io, socket) => {
       }
     } catch (error) {
       console.error("Error handling private message:", error);
-      socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-        message: "Failed to send private message.",
-      });
+      emitError("Failed to send private message.", 500);
     }
   };
 
@@ -103,9 +110,7 @@ const conversationHandler = (io, socket) => {
         type
       );
       if (saveMessageResult.status >= 400) {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-          message: saveMessageResult.message,
-        });
+        emitError(saveMessageResult.message, saveMessageResult.status);
         return;
       }
       const newMessage = saveMessageResult.data; // This message is populated with senderId
@@ -114,23 +119,19 @@ const conversationHandler = (io, socket) => {
         "participants"
       );
       if (!conversation) {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-          message: "Conversation not found.",
-        });
+        emitError("Conversation not found.");
         return;
       }
 
       // Broadcast to all participants of this group conversation
       emitToUsers(
-        conversation.participants.map((p) => p.toString()),
+        getParticipantIds(conversation.participants),
         SOCKET_EVENTS.NEW_MESSAGE_RECEIVED,
         { conversationId: conversation._id, message: newMessage }
       );
     } catch (error) {
       console.error("Error handling group message:", error);
-      socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-        message: "Failed to send group message.",
-      });
+      emitError("Failed to send group message.", 500);
     }
   };
 
@@ -156,13 +157,11 @@ const conversationHandler = (io, socket) => {
           limit: result.data.limit,
         });
       } else {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, { message: result.message });
+        emitError(result.message, result.status);
       }
     } catch (error) {
       console.error("Error getting chat history:", error);
-      socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-        message: "Failed to fetch chat history.",
-      });
+      emitError("Failed to fetch chat history.", 500);
     }
   };
 
@@ -186,13 +185,11 @@ const conversationHandler = (io, socket) => {
           limit: result.data.limit,
         });
       } else {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, { message: result.message });
+        emitError(result.message, result.status);
       }
     } catch (error) {
       console.error("Error getting user conversations:", error);
-      socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-        message: "Failed to fetch conversations.",
-      });
+      emitError("Failed to fetch conversations.", 500);
     }
   };
 
@@ -207,13 +204,8 @@ const conversationHandler = (io, socket) => {
       let result;
       if (type === "private") {
         if (!participantId) {
-          socket.emit(
-            SOCKET_EVENTS.CHAT_ERROR,
-            responseFormat({
-              message: "No User Selected  for a Conversation",
-              status: 400,
-            })
-          );
+          emitError("No User Selected  for a Conversation");
+          return;
         }
 
         result = await chatService.getOrCreatePrivateConversation(
@@ -228,14 +220,10 @@ const conversationHandler = (io, socket) => {
           participantIds.length < 1 ||
           !name
         ) {
-          socket.emit(
-            SOCKET_EVENTS.CHAT_ERROR,
-            responseFormat({
-              message:
-                "participantIds (array) and name are required for group chat",
-              status: 400,
-            })
+          emitError(
+            "participantIds (array) and name are required for group chat"
           );
+          return;
         }
         result = await chatService.createGroupConversation(
           participantIds,
@@ -243,17 +231,13 @@ const conversationHandler = (io, socket) => {
           currentUserId
         );
       } else {
-        return res.status(400).json(
-          responseFormat({
-            message: 'Invalid conversation type. Must be "private" or "group"',
-            status: 400,
-          })
-        );
+        emitError('Invalid conversation type. Must be "private" or "group"');
+        return;
       }
 
       if (result && result.data) {
         emitToUsers(
-          result.data.participants.map((p) => p._id.toString()),
+          getParticipantIds(result.data.participants),
           SOCKET_EVENTS.RECEIVE_CONVERSATION,
           responseFormat({
             message: "Conversation Created",
@@ -264,13 +248,7 @@ const conversationHandler = (io, socket) => {
       }
     } catch (error) {
       console.error("Error in createConversation:", error);
-      socket.emit(
-        SOCKET_EVENTS.CHAT_ERROR,
-        responseFormat({
-          message: "Failed to create conversation.",
-          status: 500,
-        })
-      );
+      emitError("Failed to create conversation.", 500);
     }
   };
 
@@ -284,15 +262,17 @@ const conversationHandler = (io, socket) => {
       const conversation = await Conversation.findById(conversationId).select(
         "participants"
       );
-      if (!conversation || !conversation.participants.includes(userId)) {
-        // User not in conversation or not found
+      if (
+        !conversation ||
+        !getParticipantIds(conversation.participants).includes(userId)
+      )
         return;
-      }
+
       // Emit to all participants in the conversation except the sender
       emitToUsers(
-        conversation.participants
-          .map((p) => p.toString())
-          .filter((id) => id !== userId),
+        getParticipantIds(conversation.participants).filter(
+          (id) => id !== userId
+        ),
         SOCKET_EVENTS.TYPING_INDICATOR,
         { conversationId, userId, isTyping }
       );
@@ -327,13 +307,11 @@ const conversationHandler = (io, socket) => {
           modifiedCount: result.modifiedCount,
         });
       } else {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, { message: result.message });
+        emitError(result.message, result.status);
       }
     } catch (error) {
       console.error("Error marking conversation as read:", error);
-      socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-        message: "Failed to mark as read.",
-      });
+      emitError("Failed to mark as read.", 500);
     }
   };
 
@@ -355,19 +333,17 @@ const conversationHandler = (io, socket) => {
         );
         if (conversation) {
           emitToUsers(
-            conversation.participants.map((p) => p.toString()),
+            getParticipantIds(conversation.participants),
             SOCKET_EVENTS.MESSAGE_DELETED,
             { conversationId, messageId, deletedBy: userId }
           );
         }
       } else {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, { message: result.message });
+        emitError(result.message, result.status);
       }
     } catch (error) {
       console.error("Error deleting message:", error);
-      socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-        message: "Failed to delete message.",
-      });
+      emitError("Failed to delete message.", 500);
     }
   };
 
@@ -394,35 +370,33 @@ const conversationHandler = (io, socket) => {
         );
         if (conversation) {
           emitToUsers(
-            conversation.participants.map((p) => p.toString()),
+            getParticipantIds(conversation.participants),
             SOCKET_EVENTS.MESSAGE_UPDATED,
             { conversationId, messageId, newContent, updatedBy: userId }
           );
         }
       } else {
-        socket.emit(SOCKET_EVENTS.CHAT_ERROR, { message: result.message });
+        emitError(result.message, result.status);
       }
     } catch (error) {
       console.error("Error updating message:", error);
-      socket.emit(SOCKET_EVENTS.CHAT_ERROR, {
-        message: "Failed to update message.",
-      });
+      emitError("Failed to update message.", 500);
     }
   };
 
   // Register all Socket.IO event listeners for conversations and messages
-  socket.on(SOCKET_EVENTS.SEND_PRIVATE_MESSAGE, handleSendPrivateMessage);
-  socket.on(SOCKET_EVENTS.SEND_GROUP_MESSAGE, handleSendGroupMessage);
-  socket.on(SOCKET_EVENTS.CREATE_CONVERSATION, handleCreateConversation);
-  socket.on(SOCKET_EVENTS.GET_CHAT_HISTORY, handleGetChatHistory);
-  socket.on(SOCKET_EVENTS.GET_USER_CONVERSATIONS, handleGetUserConversations);
-  socket.on(SOCKET_EVENTS.TYPING_INDICATOR, handleTypingIndicator);
-  socket.on(
-    SOCKET_EVENTS.MARK_CONVERSATION_AS_READ,
-    handleMarkConversationAsRead
-  );
-  socket.on(SOCKET_EVENTS.DELETE_MESSAGE, handleDeleteMessage);
-  socket.on(SOCKET_EVENTS.UPDATE_MESSAGE, handleUpdateMessage);
+  const eventHandlers = [
+    [SOCKET_EVENTS.SEND_PRIVATE_MESSAGE, handleSendPrivateMessage],
+    [SOCKET_EVENTS.SEND_GROUP_MESSAGE, handleSendGroupMessage],
+    [SOCKET_EVENTS.CREATE_CONVERSATION, handleCreateConversation],
+    [SOCKET_EVENTS.GET_CHAT_HISTORY, handleGetChatHistory],
+    [SOCKET_EVENTS.GET_USER_CONVERSATIONS, handleGetUserConversations],
+    [SOCKET_EVENTS.TYPING_INDICATOR, handleTypingIndicator],
+    [SOCKET_EVENTS.MARK_CONVERSATION_AS_READ, handleMarkConversationAsRead],
+    [SOCKET_EVENTS.DELETE_MESSAGE, handleDeleteMessage],
+    [SOCKET_EVENTS.UPDATE_MESSAGE, handleUpdateMessage],
+  ];
+  eventHandlers.forEach(([event, handler]) => socket.on(event, handler));
 };
 
 export default conversationHandler;
