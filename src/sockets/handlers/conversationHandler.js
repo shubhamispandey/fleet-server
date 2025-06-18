@@ -297,15 +297,25 @@ const conversationHandler = (io, socket) => {
         lastMessageId
       );
       if (result.status === 200) {
-        // Optionally, emit an event to notify others that messages are read
-        // For now, this is mainly for the user who initiated the read,
-        // and could imply unread counts for others are affected.
-        // A more complex system might emit MESSAGE_READ to the sender of the marked messages.
-        socket.emit(SOCKET_EVENTS.MESSAGE_READ, {
-          conversationId,
-          userId,
-          modifiedCount: result.modifiedCount,
-        });
+        // Get the conversation to find all participants
+        const conversation = await Conversation.findById(conversationId).select(
+          "participants"
+        );
+        if (conversation) {
+          // Emit MESSAGE_READ to all participants except the user who marked as read
+          // This allows senders to know their messages have been read
+          emitToUsers(
+            getParticipantIds(conversation.participants).filter(
+              (id) => id !== userId
+            ),
+            SOCKET_EVENTS.MESSAGE_READ,
+            {
+              conversationId,
+              userId,
+              modifiedCount: result.modifiedCount,
+            }
+          );
+        }
       } else {
         emitError(result.message, result.status);
       }
