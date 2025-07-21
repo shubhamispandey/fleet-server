@@ -30,7 +30,9 @@ const UserSchema = mongoose.Schema({
       // Set default to current time in IST (UTC+5:30)
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000;
-      return new Date(now.getTime() + istOffset - now.getTimezoneOffset() * 60000);
+      return new Date(
+        now.getTime() + istOffset - now.getTimezoneOffset() * 60000
+      );
     },
   },
   password: {
@@ -47,7 +49,9 @@ const UserSchema = mongoose.Schema({
       // Set default to current time in IST (UTC+5:30)
       const now = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000;
-      return new Date(now.getTime() + istOffset - now.getTimezoneOffset() * 60000);
+      return new Date(
+        now.getTime() + istOffset - now.getTimezoneOffset() * 60000
+      );
     },
   },
   country: {
