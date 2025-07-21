@@ -4,6 +4,7 @@ import chatService from "../../services/chatService.js";
 import socketUserMap from "../../utils/socketUserMap.js";
 import SOCKET_EVENTS from "../../utils/socketEvents.js";
 import Conversation from "../../models/Conversation.js";
+import Message from "../../models/Message.js";
 import { responseFormat } from "../../lib/helperFunctions.js";
 
 const conversationHandler = (io, socket) => {
@@ -26,9 +27,8 @@ const conversationHandler = (io, socket) => {
    */
   const emitToUsers = (recipientUserIds, eventName, payload) => {
     recipientUserIds.forEach((recipientUserId) => {
-      const recipientSockets = socketUserMap.getSocketsByUserId(
-        recipientUserId
-      );
+      const recipientSockets =
+        socketUserMap.getSocketsByUserId(recipientUserId);
       recipientSockets.forEach((sId) => {
         io.to(sId).emit(eventName, payload);
       });
@@ -46,10 +46,8 @@ const conversationHandler = (io, socket) => {
     type = "text",
   }) => {
     try {
-      const conversationResult = await chatService.getOrCreatePrivateConversation(
-        userId,
-        receiverId
-      );
+      const conversationResult =
+        await chatService.getOrCreatePrivateConversation(userId, receiverId);
       if (conversationResult.status >= 400) {
         emitError(conversationResult.message, conversationResult.status);
         return;
@@ -365,26 +363,27 @@ const conversationHandler = (io, socket) => {
   const handleUpdateMessage = async ({
     conversationId,
     messageId,
-    newContent,
+    content,
   }) => {
     try {
+      console.log(conversationId, messageId, content);
       const result = await chatService.updateMessage(
         conversationId,
         messageId,
-        newContent,
+        content,
         userId
       );
+
       if (result.status === 200) {
         const conversation = await Conversation.findById(conversationId).select(
           "participants"
         );
-        if (conversation) {
-          emitToUsers(
-            getParticipantIds(conversation.participants),
-            SOCKET_EVENTS.MESSAGE_UPDATED,
-            { conversationId, messageId, newContent, updatedBy: userId }
-          );
-        }
+
+        emitToUsers(
+          getParticipantIds(conversation.participants),
+          SOCKET_EVENTS.MESSAGE_UPDATED,
+          result
+        );
       } else {
         emitError(result.message, result.status);
       }

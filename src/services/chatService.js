@@ -417,8 +417,19 @@ const chatService = {
    */
   async updateMessage(conversationId, messageId, newContent, userId) {
     try {
-      const message = await Message.findOne({ _id: messageId, conversationId });
+      // Validate content
+      if (
+        !newContent ||
+        typeof newContent !== "string" ||
+        newContent.trim().length === 0
+      ) {
+        return {
+          status: 400,
+          message: "Message content cannot be empty.",
+        };
+      }
 
+      const message = await Message.findOne({ _id: messageId, conversationId });
       if (!message) {
         return {
           status: 404,
@@ -426,7 +437,7 @@ const chatService = {
         };
       }
 
-      // Only the sender can update their own message
+      // Only sender can edit
       if (message.senderId.toString() !== userId) {
         return {
           status: 403,
@@ -434,10 +445,31 @@ const chatService = {
         };
       }
 
-      message.content = newContent;
+      // Only allow if editable
+      if (!message.editable) {
+        return {
+          status: 403,
+          message: "This message can no longer be edited.",
+        };
+      }
+
+      // Only allow within 15 minutes of creation
+      const FIFTEEN_MINUTES = 15 * 60 * 1000;
+      if (Date.now() - new Date(message.createdAt).getTime() > FIFTEEN_MINUTES) {
+        return {
+          status: 403,
+          message: "You can only edit messages within 15 minutes of sending.",
+        };
+      }
+
+      message.content = newContent.trim();
+      message.updatedAt = new Date();
+      message.editedAt = new Date();
+      message.edited = true;
+      message.editedBy = userId;
+      message.editable = false;
       await message.save();
 
-      // Populate sender details for the response
       await message.populate("senderId", "name avatar");
 
       return {
